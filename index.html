@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>DocOPD - Online OPD Ticket & Digital Prescription</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0d9488">
+  <link rel="stylesheet" href="css/styles.css">
+  <!-- html2pdf for local PDF compilation -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+</head>
+<body>
+
+  <!-- App Header -->
+  <header class="app-header">
+    <div class="header-brand">
+      <div class="header-logo-icon">🩺</div>
+      <div class="header-titles">
+        <h1>DocOPD</h1>
+        <p id="headerClinicSub">Smart Doctor OPD & Rx</p>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button type="button" class="btn-header" onclick="switchTab('setup')">
+        ⚙️ Settings
+      </button>
+    </div>
+  </header>
+
+  <div class="container">
+    <!-- Doctor Profile Quick Banner -->
+    <div class="doctor-quick-badge">
+      <div class="doctor-badge-info">
+        <div class="doctor-avatar" id="doctorBadgeAvatar">DA</div>
+        <div class="doctor-text-details">
+          <h3 id="doctorBadgeName">Dr. Arjun Mehta</h3>
+          <p id="doctorBadgeDetails">MBBS, MD • Reg: MCI-68421</p>
+          <span class="badge-clinic" id="doctorBadgeClinic">Aarogya Medical Center</span>
+        </div>
+      </div>
+      <button type="button" class="btn btn-secondary btn-sm" onclick="switchTab('setup')">
+        ✏️ Edit Setup
+      </button>
+    </div>
+
+    <!-- ======================================================= -->
+    <!-- TAB 1: NEW OPD TICKET & PRESCRIPTION FORM              -->
+    <!-- ======================================================= -->
+    <main id="view-new-ticket" class="view-screen active">
+      
+      <!-- Section 1: Ticket & Patient Details -->
+      <section class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <span class="card-icon">👤</span> Patient Information & OPD Token
+          </div>
+          <button type="button" class="btn btn-secondary btn-sm" onclick="resetTicketForm()">
+            🔄 Clear Form
+          </button>
+        </div>
+
+        <div class="form-grid-3">
+          <div class="form-group">
+            <label class="form-label" for="ticketTokenNumber">Token / OPD No</label>
+            <input type="number" id="ticketTokenNumber" class="form-control" style="font-weight:700; color:var(--primary-dark);" value="1">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="ticketDate">Visit Date</label>
+            <input type="date" id="ticketDate" class="form-control">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="ticketVisitType">Visit Type</label>
+            <select id="ticketVisitType" class="form-control">
+              <option value="First Visit">First Visit (New)</option>
+              <option value="Follow-up">Follow-up</option>
+              <option value="Emergency">Emergency</option>
+              <option value="Report Review">Report Review</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label class="form-label" for="patientName">Patient Full Name <span class="required">*</span></label>
+            <input type="text" id="patientName" class="form-control" placeholder="e.g. Ramesh Kumar" required>
+          </div>
+          <div class="form-grid-2" style="gap:8px;">
+            <div class="form-group">
+              <label class="form-label" for="patientAge">Age (Years)</label>
+              <input type="number" id="patientAge" class="form-control" placeholder="e.g. 35">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="patientGender">Gender</label>
+              <select id="patientGender" class="form-control">
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Child / Infant">Child</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label class="form-label" for="patientPhone">WhatsApp Mobile Number <span class="required">*</span></label>
+            <div class="input-with-action">
+              <select id="patientCountryCode" class="form-control" style="max-width:90px;">
+                <option value="+91">🇮🇳 +91</option>
+                <option value="+1">🇺🇸 +1</option>
+                <option value="+44">🇬🇧 +44</option>
+                <option value="+971">🇦🇪 +971</option>
+                <option value="+880">🇧🇩 +880</option>
+                <option value="+977">🇳🇵 +977</option>
+              </select>
+              <input type="tel" id="patientPhone" class="form-control" placeholder="10-digit mobile number">
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="patientUhid">UHID / Patient ID (Optional)</label>
+            <input type="text" id="patientUhid" class="form-control" placeholder="e.g. AMC-2026-901">
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 2: Vitals & Clinical Metrics -->
+      <section class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <span class="card-icon">💓</span> Patient Vitals & Health Metrics
+          </div>
+        </div>
+
+        <div class="vitals-grid">
+          <div class="vital-card">
+            <span class="vital-name">BP (mmHg)</span>
+            <input type="text" id="vitalBp" placeholder="120/80">
+            <span class="vital-unit">Systolic/Dia</span>
+          </div>
+          <div class="vital-card">
+            <span class="vital-name">Pulse Rate</span>
+            <input type="number" id="vitalPulse" placeholder="72">
+            <span class="vital-unit">bpm</span>
+          </div>
+          <div class="vital-card">
+            <span class="vital-name">Temp (°F)</span>
+            <input type="text" id="vitalTemp" placeholder="98.6">
+            <span class="vital-unit">Fahrenheit</span>
+          </div>
+          <div class="vital-card">
+            <span class="vital-name">SpO2 (%)</span>
+            <input type="number" id="vitalSpo2" placeholder="99">
+            <span class="vital-unit">Oxygen %</span>
+          </div>
+          <div class="vital-card">
+            <span class="vital-name">Weight (kg)</span>
+            <input type="number" id="vitalWeight" placeholder="68" oninput="calculateBMI()">
+            <span class="vital-unit">Kilograms</span>
+          </div>
+          <div class="vital-card">
+            <span class="vital-name">Height (cm)</span>
+            <input type="number" id="vitalHeight" placeholder="172" oninput="calculateBMI()">
+            <span class="vital-unit">Centimeters</span>
+          </div>
+          <div class="vital-card">
+            <span class="vital-name">BMI</span>
+            <input type="text" id="vitalBmi" placeholder="--" readonly style="background:#f1f5f9;">
+            <span class="vital-unit">kg/m²</span>
+          </div>
+          <div class="vital-card">
+            <span class="vital-name">Sugar (RBS)</span>
+            <input type="text" id="vitalSugar" placeholder="110">
+            <span class="vital-unit">mg/dL</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 3: Symptoms & Chief Complaints -->
+      <section class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <span class="card-icon">🩺</span> Chief Complaints & Symptoms
+          </div>
+        </div>
+
+        <label class="form-label">Tap to Quick-Add Common Symptoms:</label>
+        <div id="quickSymptomChips" class="chips-container"></div>
+
+        <div style="margin-top:12px;">
+          <label class="form-label" for="customSymptomInput">Add Custom Symptom / Duration:</label>
+          <div class="input-with-action">
+            <input type="text" id="customSymptomInput" class="form-control" placeholder="e.g. Dry cough especially at night for 4 days">
+            <button type="button" class="btn btn-primary btn-sm" onclick="addCustomSymptom()">+ Add</button>
+          </div>
+        </div>
+
+        <div style="margin-top:12px;">
+          <label class="form-label">Selected Symptoms:</label>
+          <div id="selectedSymptomsList" class="dynamic-list"></div>
+        </div>
+      </section>
+
+      <!-- Section 4: Provisional Diagnosis -->
+      <section class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <span class="card-icon">📋</span> Provisional Diagnosis / Clinical Findings
+          </div>
+        </div>
+        <div class="form-group no-margin">
+          <input type="text" id="ticketDiagnosis" class="form-control" placeholder="e.g. Acute Viral Pharyngitis / Type 2 Diabetes Mellitus" list="diagnosisList">
+          <datalist id="diagnosisList">
+            <option value="Acute Viral Pharyngitis / Upper Respiratory Tract Infection">
+            <option value="Acute Gastroenteritis / Dehydration">
+            <option value="Essential Hypertension (Stage 1)">
+            <option value="Type 2 Diabetes Mellitus">
+            <option value="Acid Peptic Disease / GERD / Gastritis">
+            <option value="Urinary Tract Infection (UTI)">
+            <option value="Allergic Rhinitis / Bronchitis">
+            <option value="Tension-type Headache / Migraine">
+            <option value="Lumbar Spondylosis / Low Back Pain">
+            <option value="Viral Pyrexia / Suspected Dengue">
+          </datalist>
+        </div>
+      </section>
+
+      <!-- Section 5: Recommended Diagnostic & Lab Tests -->
+      <section class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <span class="card-icon">🔬</span> Recommended Lab & Diagnostic Tests
+          </div>
+        </div>
+
+        <label class="form-label">Quick Common Tests:</label>
+        <div id="quickTestChips" class="chips-container"></div>
+
+        <div style="margin-top:12px;" class="form-grid-2">
+          <div class="form-group no-margin">
+            <label class="form-label" for="customTestNameInput">Test Name</label>
+            <input type="text" id="customTestNameInput" class="form-control" placeholder="e.g. Ultrasound Whole Abdomen" list="allTestsList">
+            <datalist id="allTestsList">
+              <option value="Complete Blood Count (CBC)">
+              <option value="Fasting & PP Blood Sugar">
+              <option value="HbA1c (Glycated Hemoglobin)">
+              <option value="Lipid Profile">
+              <option value="Liver Function Test (LFT)">
+              <option value="Kidney Function Test (KFT)">
+              <option value="Thyroid Profile (T3, T4, TSH)">
+              <option value="Urine Routine & Microscopy">
+              <option value="Chest X-Ray (PA View)">
+              <option value="ECG (12 Lead)">
+              <option value="Ultrasound Abdomen">
+              <option value="Serum Uric Acid">
+              <option value="Vitamin D3 & B12">
+            </datalist>
+          </div>
+          <div class="form-group no-margin">
+            <label class="form-label" for="customTestInstInput">Instructions / Note (Optional)</label>
+            <div class="input-with-action">
+              <input type="text" id="customTestInstInput" class="form-control" placeholder="e.g. 12 Hours Fasting required">
+              <button type="button" class="btn btn-primary btn-sm" onclick="addCustomTest()">+ Add</button>
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-top:12px;">
+          <label class="form-label">Selected Tests for Prescription:</label>
+          <div id="selectedTestsList" class="dynamic-list"></div>
+        </div>
+      </section>
+
+      <!-- Section 6: Rx Prescriptions & Medications -->
+      <section class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <span class="card-icon">💊</span> ℞ Prescriptions & Medications
+          </div>
+        </div>
+
+        <div class="form-grid-3">
+          <div class="form-group" style="grid-column: span 2;">
+            <label class="form-label" for="rxMedName">Medicine Name & Strength <span class="required">*</span></label>
+            <input type="text" id="rxMedName" class="form-control" placeholder="e.g. Tab. Paracetamol 650mg" list="medicineSuggestions">
+            <datalist id="medicineSuggestions"></datalist>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="rxMedType">Form</label>
+            <select id="rxMedType" class="form-control">
+              <option value="Tablet">Tablet</option>
+              <option value="Capsule">Capsule</option>
+              <option value="Syrup">Syrup</option>
+              <option value="Injection">Injection</option>
+              <option value="Ointment">Ointment / Gel</option>
+              <option value="Drops">Drops</option>
+              <option value="Inhaler">Inhaler</option>
+              <option value="Powder / Sachet">Sachet</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-grid-3">
+          <div class="form-group">
+            <label class="form-label" for="rxMedDose">Dosage / Frequency</label>
+            <input type="text" id="rxMedDose" class="form-control" value="1-0-1" placeholder="e.g. 1-0-1 or 1-1-1 or SOS">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="rxMedTiming">Timing</label>
+            <select id="rxMedTiming" class="form-control">
+              <option value="After Food">After Food</option>
+              <option value="Before Food (Empty Stomach)">Before Food</option>
+              <option value="At Bedtime">At Bedtime</option>
+              <option value="With Food">With Food</option>
+              <option value="SOS (As needed)">SOS (As needed)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="rxMedDuration">Duration</label>
+            <input type="text" id="rxMedDuration" class="form-control" value="5 Days" placeholder="e.g. 5 Days">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="rxMedNote">Special Instructions / Remarks</label>
+          <div class="input-with-action">
+            <input type="text" id="rxMedNote" class="form-control" placeholder="e.g. Take with warm water, avoid dairy">
+            <button type="button" class="btn btn-primary" onclick="addMedicineFromForm()">+ Add Medicine</button>
+          </div>
+        </div>
+
+        <div style="margin-top:14px;">
+          <label class="form-label">Prescription List (Rx):</label>
+          <div id="prescribedMedicinesList"></div>
+        </div>
+      </section>
+
+      <!-- Section 7: Diet, Advice & Follow-up -->
+      <section class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <span class="card-icon">💡</span> Diet, General Advice & Follow-Up
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="customAdviceInput">Add Advice / Diet Instruction:</label>
+          <div class="input-with-action">
+            <input type="text" id="customAdviceInput" class="form-control" placeholder="e.g. High fiber diet, avoid spicy food, brisk walk 30 mins">
+            <button type="button" class="btn btn-primary btn-sm" onclick="addAdviceItem()">+ Add</button>
+          </div>
+        </div>
+
+        <div id="selectedAdviceList" class="dynamic-list" style="margin-bottom:14px;"></div>
+
+        <div class="form-group no-margin">
+          <label class="form-label" for="ticketFollowUp">Next Follow-Up Appointment</label>
+          <input type="text" id="ticketFollowUp" class="form-control" value="After 5 days" placeholder="e.g. After 5 days or 30-Aug-2026">
+        </div>
+      </section>
+
+      <!-- Sticky Action Bar for One-Tap Actions -->
+      <div class="sticky-action-bar">
+        <button type="button" class="btn btn-whatsapp btn-block btn-lg" onclick="openWhatsAppShare()">
+          📱 Send to WhatsApp
+        </button>
+        <button type="button" class="btn btn-primary btn-block btn-lg" onclick="issueAndSaveTicket()">
+          👁️ Preview & PDF
+        </button>
+      </div>
+
+    </main>
+
+    <!-- ======================================================= -->
+    <!-- TAB 2: OPD QUEUE & PATIENT RECORDS HISTORY             -->
+    <!-- ======================================================= -->
+    <main id="view-history" class="view-screen">
+      <!-- Stats summary -->
+      <div class="stats-grid">
+        <div class="stat-box">
+          <div class="stat-value" id="statTodayTickets">0</div>
+          <div class="stat-label">Today's Patients</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-value" id="statTotalTickets">0</div>
+          <div class="stat-label">Total Records</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-value" id="statTodayRevenue">₹0</div>
+          <div class="stat-label">Today's Fees</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <span class="card-icon">📋</span> Issued OPD Tickets & Prescriptions
+          </div>
+        </div>
+
+        <div class="form-group">
+          <input type="text" id="historySearchInput" class="form-control" placeholder="🔍 Search by patient name, phone, token, or diagnosis...">
+        </div>
+
+        <div id="ticketsHistoryList"></div>
+      </div>
+    </main>
+
+    <!-- ======================================================= -->
+    <!-- TAB 3: CLINICAL KITS & TEMPLATES                       -->
+    <!-- ======================================================= -->
+    <main id="view-templates" class="view-screen">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <span class="card-icon">⚡</span> Quick Prescription Templates
+          </div>
+        </div>
+        <p style="font-size:12px; color:var(--slate-600); margin-bottom:14px;">
+          One-tap clinical kits that auto-populate diagnosis, tests, medications, and advice to save time during busy OPD hours.
+        </p>
+        <div id="templatesList" class="template-grid"></div>
+      </div>
+    </main>
+
+    <!-- ======================================================= -->
+    <!-- TAB 4: DOCTOR PROFILE & CLINIC SETUP                   -->
+    <!-- ======================================================= -->
+    <main id="view-setup" class="view-screen">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <span class="card-icon">👨‍⚕️</span> Doctor Profile & Clinic Customization
+          </div>
+        </div>
+        <p style="font-size:12px; color:var(--slate-600); margin-bottom:16px;">
+          Configure your doctor credentials, clinic branding, and registration info. This information will appear on all OPD tickets, printable PDF slips, and WhatsApp messages.
+        </p>
+
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label class="form-label" for="setupDocName">Doctor Full Name <span class="required">*</span></label>
+            <input type="text" id="setupDocName" class="form-control" placeholder="e.g. Dr. Rajesh Sharma">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="setupDocDegrees">Degrees / Qualifications <span class="required">*</span></label>
+            <input type="text" id="setupDocDegrees" class="form-control" placeholder="e.g. MBBS, MD (Medicine), FCCP">
+          </div>
+        </div>
+
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label class="form-label" for="setupDocSpecialty">Specialization / Department</label>
+            <input type="text" id="setupDocSpecialty" class="form-control" placeholder="e.g. Consultant Physician & Diabetologist">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="setupDocReg">Medical Council Reg. Number <span class="required">*</span></label>
+            <input type="text" id="setupDocReg" class="form-control" placeholder="e.g. MCI-54892 / State Council No">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="setupClinicName">Clinic / Hospital Name <span class="required">*</span></label>
+          <input type="text" id="setupClinicName" class="form-control" placeholder="e.g. City Health Clinic & Diagnostics">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="setupClinicAddress">Clinic Address</label>
+          <input type="text" id="setupClinicAddress" class="form-control" placeholder="e.g. 102 Metro Towers, Main Road">
+        </div>
+
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label class="form-label" for="setupClinicPhone">Doctor Contact / WhatsApp Number</label>
+            <input type="tel" id="setupClinicPhone" class="form-control" placeholder="e.g. +91 9876543210">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="setupClinicEmail">Clinic Email</label>
+            <input type="email" id="setupClinicEmail" class="form-control" placeholder="e.g. clinic@example.com">
+          </div>
+        </div>
+
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label class="form-label" for="setupClinicTimings">Consultation Timings</label>
+            <input type="text" id="setupClinicTimings" class="form-control" placeholder="e.g. Mon-Sat 10:00 AM - 02:00 PM">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="setupClinicFee">Consultation Fee (₹)</label>
+            <input type="number" id="setupClinicFee" class="form-control" placeholder="500">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="setupFooterNotes">Footer Note / Disclaimer</label>
+          <textarea id="setupFooterNotes" class="form-control" placeholder="e.g. Valid for 7 days. In emergency contact 108."></textarea>
+        </div>
+
+        <button type="button" class="btn btn-primary btn-block btn-lg" onclick="saveDoctorSettings()">
+          💾 Save Doctor & Clinic Profile
+        </button>
+      </div>
+
+      <!-- App Version & GitHub Updates Card -->
+      <div class="card" style="margin-top: 16px;">
+        <div class="card-header">
+          <div class="card-title">
+            <span class="card-icon">🚀</span> App Version & GitHub Updates
+          </div>
+          <span class="badge-clinic" id="appVersionBadge">v1.0.0</span>
+        </div>
+        <p style="font-size:12px; color:var(--slate-600); margin-bottom:12px;">
+          DocOPD connects with your GitHub repository releases so you and your staff can easily check for new features and update the APK with 1 tap.
+        </p>
+
+        <div class="form-group">
+          <label class="form-label" for="setupGithubRepo">GitHub Repository (owner/repo)</label>
+          <input type="text" id="setupGithubRepo" class="form-control" placeholder="e.g. your-username/DocOPD">
+        </div>
+
+        <div class="form-grid-2">
+          <button type="button" class="btn btn-secondary" onclick="checkForAppUpdates()">
+            🔍 Check for Updates
+          </button>
+          <a id="githubReleasesLink" href="https://github.com" target="_blank" class="btn btn-accent">
+            📦 Open Releases Page
+          </a>
+        </div>
+        <div id="updateCheckResult" style="margin-top:10px; font-size:12px;"></div>
+      </div>
+    </main>
+
+  </div>
+
+  <!-- ======================================================= -->
+  <!-- MODAL: DIGITAL OPD SLIP & PRINT PREVIEW                 -->
+  <!-- ======================================================= -->
+  <div id="slipPreviewModal" class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>📄 Digital OPD Ticket & Prescription Slip</h2>
+        <button type="button" class="btn-close-modal" onclick="closeModal('slipPreviewModal')">✕</button>
+      </div>
+      <div class="modal-body">
+        <div id="opdSlipPreviewContent"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="printOpdSlip()">
+          🖨️ Print Slip
+        </button>
+        <button type="button" class="btn btn-accent" onclick="downloadSlipAsPdf()">
+          📥 Download PDF
+        </button>
+        <button type="button" class="btn btn-whatsapp" onclick="openWhatsAppShare()">
+          📱 Share WhatsApp
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================= -->
+  <!-- MODAL: WHATSAPP MESSAGE PREVIEW                         -->
+  <!-- ======================================================= -->
+  <div id="whatsappPreviewModal" class="modal-overlay">
+    <div class="modal-content" style="max-width: 500px;">
+      <div class="modal-header">
+        <h2>📱 WhatsApp Message Preview</h2>
+        <button type="button" class="btn-close-modal" onclick="closeModal('whatsappPreviewModal')">✕</button>
+      </div>
+      <div class="modal-body">
+        <div style="font-size:12px; margin-bottom:8px; color:var(--slate-600);">
+          Recipient: <strong id="whatsappModalPhone"></strong>
+        </div>
+        <div class="whatsapp-preview-card">
+          <div class="whatsapp-bubble" id="whatsappPreviewContent"></div>
+          <div class="whatsapp-bubble-time">Just now ✓✓</div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeModal('whatsappPreviewModal')">
+          Cancel
+        </button>
+        <button type="button" class="btn btn-whatsapp" onclick="openWhatsAppShare(); closeModal('whatsappPreviewModal');">
+          🚀 Send Directly via WhatsApp
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom Navigation Bar -->
+  <nav class="bottom-nav">
+    <button type="button" class="nav-item active" data-tab="new-ticket" onclick="switchTab('new-ticket')">
+      <span class="nav-icon">🎫</span>
+      <span>Issue OPD</span>
+    </button>
+    <button type="button" class="nav-item" data-tab="history" onclick="switchTab('history')">
+      <span class="nav-icon">📋</span>
+      <span>Records</span>
+    </button>
+    <button type="button" class="nav-item" data-tab="templates" onclick="switchTab('templates')">
+      <span class="nav-icon">⚡</span>
+      <span>Templates</span>
+    </button>
+    <button type="button" class="nav-item" data-tab="setup" onclick="switchTab('setup')">
+      <span class="nav-icon">👨‍⚕️</span>
+      <span>Dr Setup</span>
+    </button>
+  </nav>
+
+  <script src="js/app.js"></script>
+</body>
+</html>

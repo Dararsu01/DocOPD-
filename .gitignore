@@ -45,3 +45,13 @@ yarn-error.log*
 __pycache__/
 *.py[cod]
 *$py.class
+
+# Android signing keys
+*.jks
+*.keystore
+
+# Android build files
+.gradle/
+build/
+android/.gradle/
+android/app/build/

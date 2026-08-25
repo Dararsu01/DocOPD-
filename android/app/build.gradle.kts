@@ -6,21 +6,13 @@ plugins {
 android {
     namespace = "com.docopd.app"
     compileSdk = 34
-    signingConfigs {
-        create("release") {
-            storeFile = file("docopd-release.jks")
-            storePassword = providers.gradleProperty("DOCOPD_STORE_PASSWORD").get()
-            keyAlias = providers.gradleProperty("DOCOPD_KEY_ALIAS").get()
-            keyPassword = providers.gradleProperty("DOCOPD_KEY_PASSWORD").get()
-        }
-    }
 
     defaultConfig {
         applicationId = "com.docopd.app"
         minSdk = 24
         targetSdk = 34
-        versionCode = 2
-        versionName = "1.1.0"
+        versionCode = 3
+        versionName = "1.1.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -30,7 +22,6 @@ android {
 
     buildTypes {
         release {
-signingConfig = signingConfigs.getByName("release")
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),

@@ -7,6 +7,7 @@ import android.net.Uri
 import android.os.Bundle
 import android.print.PrintAttributes
 import android.print.PrintManager
+import android.webkit.DownloadListener
 import android.webkit.JavascriptInterface
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
@@ -16,6 +17,7 @@ import android.webkit.WebViewClient
 import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
+import java.io.File
 
 class MainActivity : AppCompatActivity() {
 
@@ -40,6 +42,30 @@ class MainActivity : AppCompatActivity() {
         // JavaScript Interface for Native Android Bridge
         webView.addJavascriptInterface(WebAppInterface(this), "AndroidBridge")
 
+        // Handle Download Listener for any APK / file links in WebView
+        webView.setDownloadListener { url, userAgent, contentDisposition, mimetype, contentLength ->
+            if (url.endsWith(".apk") || url.contains("/download/") || mimetype == "application/vnd.android.package-archive") {
+                ApkInstallerHelper.downloadAndInstall(this@MainActivity, url, object : ApkInstallerHelper.DownloadCallback {
+                    override fun onProgress(percentage: Int) {
+                        webView.evaluateJavascript("if (window.onApkDownloadProgress) window.onApkDownloadProgress($percentage);", null)
+                    }
+                    override fun onSuccess(apkFile: File) {
+                        webView.evaluateJavascript("if (window.onApkDownloadSuccess) window.onApkDownloadSuccess();", null)
+                    }
+                    override fun onError(error: String) {
+                        webView.evaluateJavascript("if (window.onApkDownloadError) window.onApkDownloadError('${error.replace("'", "\\'")}');", null)
+                    }
+                })
+            } else {
+                try {
+                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                    startActivity(intent)
+                } catch (e: Exception) {
+                    Toast.makeText(this@MainActivity, "Could not open download link", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+
         webView.webViewClient = object : WebViewClient() {
             override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
                 val url = request?.url.toString()
@@ -51,6 +77,20 @@ class MainActivity : AppCompatActivity() {
                     } catch (e: Exception) {
                         Toast.makeText(this@MainActivity, "Could not open link: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
                     }
+                    return true
+                } else if (url.endsWith(".apk") || url.contains("/releases/latest/download/") || url.contains("/releases/download/")) {
+                    ApkInstallerHelper.downloadAndInstall(this@MainActivity, url, object : ApkInstallerHelper.DownloadCallback {
+                        override fun onProgress(percentage: Int) {
+                            webView.evaluateJavascript("if (window.onApkDownloadProgress) window.onApkDownloadProgress($percentage);", null)
+                        }
+                        override fun onSuccess(apkFile: File) {
+                            webView.evaluateJavascript("if (window.onApkDownloadSuccess) window.onApkDownloadSuccess();", null)
+                        }
+                        override fun onError(error: String) {
+                            webView.evaluateJavascript("if (window.onApkDownloadError) window.onApkDownloadError('${error.replace("'", "\\'")}');", null)
+                        }
+                    })
+                    return true
                 }
                 return false
             }
@@ -108,6 +148,21 @@ class MainActivity : AppCompatActivity() {
                     Toast.makeText(activity, "Printing not supported: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
                 }
             }
+        }
+
+        @JavascriptInterface
+        fun downloadAndInstallApk(apkUrl: String) {
+            ApkInstallerHelper.downloadAndInstall(activity, apkUrl, object : ApkInstallerHelper.DownloadCallback {
+                override fun onProgress(percentage: Int) {
+                    webView.evaluateJavascript("if (window.onApkDownloadProgress) window.onApkDownloadProgress($percentage);", null)
+                }
+                override fun onSuccess(apkFile: File) {
+                    webView.evaluateJavascript("if (window.onApkDownloadSuccess) window.onApkDownloadSuccess();", null)
+                }
+                override fun onError(error: String) {
+                    webView.evaluateJavascript("if (window.onApkDownloadError) window.onApkDownloadError('${error.replace("'", "\\'")}');", null)
+                }
+            })
         }
 
         @JavascriptInterface

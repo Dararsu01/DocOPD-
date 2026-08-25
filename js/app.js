@@ -1539,11 +1539,11 @@ function saveDoctorSettings() {
 
 // GitHub Releases & In-App Update Checker
 async function checkForAppUpdates() {
-  const repo = document.getElementById('setupGithubRepo')?.value.trim() || state.doctorProfile.githubRepo;
+  const repo = document.getElementById('setupGithubRepo')?.value.trim() || state.doctorProfile.githubRepo || 'Dararsu01/DocOPD-';
   const resultEl = document.getElementById('updateCheckResult');
 
   if (!repo || !repo.includes('/')) {
-    if (resultEl) resultEl.innerHTML = '<span style="color:var(--danger);">⚠️ Please specify your GitHub repo as <code>username/repository</code> (e.g. <code>DrSharma/DocOPD</code>).</span>';
+    if (resultEl) resultEl.innerHTML = '<span style="color:var(--danger);">⚠️ Please specify your GitHub repo as <code>username/repository</code> (e.g. <code>Dararsu01/DocOPD-</code>).</span>';
     return;
   }
 
@@ -1553,7 +1553,7 @@ async function checkForAppUpdates() {
     const response = await fetch(`https://api.github.com/repos/${repo}/releases/latest`);
     if (!response.ok) {
       if (response.status === 404) {
-        if (resultEl) resultEl.innerHTML = `<span style="color:var(--slate-600);">No releases published yet on <strong>${repo}</strong>. Once you publish a release, updates will appear here!</span>`;
+        if (resultEl) resultEl.innerHTML = `<span style="color:var(--slate-600);">No releases published yet on <strong>${repo}</strong>. Once you publish a release on GitHub, updates will appear here!</span>`;
       } else {
         if (resultEl) resultEl.innerHTML = `<span style="color:var(--danger);">Error checking updates: HTTP ${response.status}</span>`;
       }
@@ -1564,36 +1564,119 @@ async function checkForAppUpdates() {
     const latestVersion = (data.tag_name || '').replace('v', '').trim();
     const currentVer = state.doctorProfile.appVersion || '1.0.0';
 
-    const apkAsset = data.assets && data.assets.find(a => a.name.endsWith('.apk'));
-    const downloadUrl = apkAsset ? apkAsset.browser_download_url : data.html_url;
+    // Find .apk asset in release assets or construct direct release download URL
+    let downloadUrl = `https://github.com/${repo}/releases/latest/download/app-release.apk`;
+    if (data.assets && data.assets.length > 0) {
+      const apkAsset = data.assets.find(a => a.name.toLowerCase().endsWith('.apk'));
+      if (apkAsset && apkAsset.browser_download_url) {
+        downloadUrl = apkAsset.browser_download_url;
+      }
+    } else if (data.tag_name) {
+      downloadUrl = `https://github.com/${repo}/releases/download/${data.tag_name}/app-release.apk`;
+    }
 
     if (latestVersion && latestVersion !== currentVer) {
       if (resultEl) {
         resultEl.innerHTML = `
-          <div style="background:var(--accent-light); padding:10px; border-radius:8px; border:1px solid var(--accent); margin-top:8px;">
-            <div style="font-weight:700; color:#065f46;">🎉 New Update Available: v${latestVersion}</div>
-            <div style="font-size:11px; color:#047857; margin:4px 0;">${data.name || 'New release with latest features and improvements'}</div>
-            <a href="${downloadUrl}" target="_blank" class="btn btn-whatsapp btn-sm" style="display:inline-block; margin-top:4px; text-decoration:none;">
-              📥 Download Latest APK (v${latestVersion})
-            </a>
+          <div style="background:var(--accent-light); padding:12px; border-radius:8px; border:1.5px solid var(--accent); margin-top:8px;">
+            <div style="font-weight:700; color:#065f46; font-size:13px;">🎉 New Update Available: v${latestVersion}</div>
+            <div style="font-size:11px; color:#047857; margin:4px 0;">${data.name || 'New release with latest fixes and improvements'}</div>
+            <div style="margin-top:8px;">
+              <button type="button" class="btn btn-whatsapp btn-sm" onclick="downloadUpdateApk('${downloadUrl}')">
+                📥 Download & Install Latest APK (v${latestVersion})
+              </button>
+            </div>
+            <div id="apkDownloadStatus" style="margin-top:6px; font-size:11px;"></div>
           </div>
         `;
       }
     } else {
       if (resultEl) {
-        resultEl.innerHTML = `<span style="color:var(--accent); font-weight:600;">✅ You are using the latest version (v${currentVer})!</span>`;
+        resultEl.innerHTML = `
+          <div style="background:#f0fdf4; padding:10px; border-radius:8px; border:1px solid #86efac; margin-top:6px;">
+            <span style="color:var(--accent); font-weight:700;">✅ You are using the latest version (v${currentVer})!</span>
+            <div style="margin-top:6px;">
+              <button type="button" class="btn btn-secondary btn-sm" onclick="downloadUpdateApk('${downloadUrl}')">
+                🔄 Re-download Current APK (v${currentVer})
+              </button>
+            </div>
+            <div id="apkDownloadStatus" style="margin-top:6px; font-size:11px;"></div>
+          </div>
+        `;
       }
     }
   } catch (err) {
     if (resultEl) {
+      const fallbackUrl = `https://github.com/${repo}/releases/latest/download/app-release.apk`;
       resultEl.innerHTML = `
-        <span style="color:var(--slate-600);">
-          Checked repo <strong>${repo}</strong>. Visit <a href="https://github.com/${repo}/releases" target="_blank" style="color:var(--primary);">GitHub Releases</a> to view available APK downloads.
-        </span>
+        <div style="margin-top:6px;">
+          <span style="color:var(--slate-600);">Checked repo <strong>${repo}</strong>.</span>
+          <div style="margin-top:6px;">
+            <button type="button" class="btn btn-whatsapp btn-sm" onclick="downloadUpdateApk('${fallbackUrl}')">
+              📥 Download Latest APK Direct
+            </button>
+          </div>
+          <div id="apkDownloadStatus" style="margin-top:6px; font-size:11px;"></div>
+        </div>
       `;
     }
   }
 }
+
+// Dedicated APK Download & Install Trigger
+function downloadUpdateApk(downloadUrl) {
+  const statusEl = document.getElementById('apkDownloadStatus');
+  if (statusEl) {
+    statusEl.innerHTML = '<span style="color:var(--secondary); font-weight:600;">⏳ Starting APK download...</span>';
+  }
+
+  // 1. If running inside Native Android App Bridge
+  if (window.AndroidBridge && typeof window.AndroidBridge.downloadAndInstallApk === 'function') {
+    window.AndroidBridge.downloadAndInstallApk(downloadUrl);
+    if (statusEl) {
+      statusEl.innerHTML = '<span style="color:var(--primary); font-weight:600;">📥 Downloading update package... The Android Package Installer will open automatically when ready!</span>';
+    }
+    return;
+  }
+
+  // 2. Web Browser Fallback
+  try {
+    const a = document.createElement('a');
+    a.href = downloadUrl;
+    a.target = '_blank';
+    a.download = 'app-release.apk';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    if (statusEl) {
+      statusEl.innerHTML = `<span style="color:var(--accent); font-weight:600;">✅ Download started in browser. If it did not start, <a href="${downloadUrl}" target="_blank" style="color:var(--primary); font-weight:700;">Click Here</a>.</span>`;
+    }
+  } catch (e) {
+    window.location.href = downloadUrl;
+  }
+}
+
+// Global Callbacks for Android Native Bridge
+window.onApkDownloadProgress = function(percent) {
+  const statusEl = document.getElementById('apkDownloadStatus');
+  if (statusEl) {
+    statusEl.innerHTML = `<span style="color:var(--secondary); font-weight:600;">⏳ Downloading APK: ${percent}%</span>`;
+  }
+};
+
+window.onApkDownloadSuccess = function() {
+  const statusEl = document.getElementById('apkDownloadStatus');
+  if (statusEl) {
+    statusEl.innerHTML = `<span style="color:var(--accent); font-weight:700;">✅ APK Downloaded! Launching Android Package Installer...</span>`;
+  }
+};
+
+window.onApkDownloadError = function(err) {
+  const statusEl = document.getElementById('apkDownloadStatus');
+  if (statusEl) {
+    statusEl.innerHTML = `<span style="color:var(--danger); font-weight:700;">❌ Download Error: ${err}</span>`;
+  }
+};
 
 // Modal Helpers
 function openModal(modalId) {

@@ -19,8 +19,8 @@ const state = {
     fee: '500',
     currency: '₹',
     footerNotes: 'Valid for 7 days. In case of acute medical emergency, please visit the nearest hospital casualty immediately.',
-    githubRepo: 'Doctor/DocOPD',
-    appVersion: '1.0.0'
+    githubRepo: 'Dararsu01/DocOPD-',
+    appVersion: '1.1.0'
   },
   currentTicket: {
     tokenNumber: 1,
@@ -910,31 +910,386 @@ function showWhatsAppPreviewModal(ticket = null) {
   openModal('whatsappPreviewModal');
 }
 
-// Print / PDF OPD Slip
+// =========================================================
+// PURE VECTOR PDF GENERATOR & ROBUST PRINT ENGINE
+// =========================================================
+
 function printOpdSlip() {
   updateLiveTicketPreview();
-  window.print();
+  const slipElement = document.getElementById('printableOpdSlip');
+  if (!slipElement) {
+    alert('Please open or create an OPD ticket first.');
+    return;
+  }
+
+  // Check Native Android Bridge
+  if (window.AndroidBridge && typeof window.AndroidBridge.printDocument === 'function') {
+    window.AndroidBridge.printDocument();
+    return;
+  }
+
+  // Web Browser: Dedicated hidden print iframe to isolate prescription
+  let printFrame = document.getElementById('docopd_print_frame');
+  if (!printFrame) {
+    printFrame = document.createElement('iframe');
+    printFrame.id = 'docopd_print_frame';
+    printFrame.style.position = 'fixed';
+    printFrame.style.right = '0';
+    printFrame.style.bottom = '0';
+    printFrame.style.width = '0';
+    printFrame.style.height = '0';
+    printFrame.style.border = '0';
+    document.body.appendChild(printFrame);
+  }
+
+  const frameDoc = printFrame.contentWindow.document;
+  frameDoc.open();
+  frameDoc.write(`
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>OPD_Prescription_${state.currentTicket.patient.name || 'Patient'}_Token_${state.currentTicket.tokenNumber}</title>
+        <style>
+          @page { size: A4 portrait; margin: 12mm 15mm; }
+          * { box-sizing: border-box; margin: 0; padding: 0; }
+          body { font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #1e293b; font-size: 12px; line-height: 1.4; background: #fff; }
+          .opd-slip-container { width: 100%; border: none; padding: 0; box-shadow: none; }
+          .slip-header { display: flex; justify-content: space-between; border-bottom: 2px solid #0f766e; padding-bottom: 10px; margin-bottom: 12px; }
+          .slip-clinic-name { font-size: 18px; font-weight: 800; color: #0f766e; text-transform: uppercase; letter-spacing: 0.5px; }
+          .slip-doc-name { font-size: 15px; font-weight: 700; color: #0f172a; margin-top: 2px; }
+          .slip-doc-qual { font-size: 12px; font-weight: 600; color: #475569; }
+          .slip-doc-reg { font-size: 11px; color: #64748b; }
+          .slip-contact-info { text-align: right; font-size: 11px; color: #475569; line-height: 1.4; }
+          .slip-patient-banner { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 8px 12px; margin-bottom: 12px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+          .slip-patient-field .label { font-size: 10px; font-weight: 600; color: #64748b; text-transform: uppercase; }
+          .slip-patient-field .value { font-size: 12px; font-weight: 700; color: #0f172a; }
+          .slip-vitals-bar { background: #ecfdf5; border: 1px dashed #10b981; border-radius: 6px; padding: 6px 12px; margin-bottom: 12px; display: flex; flex-wrap: wrap; gap: 10px; font-size: 11px; }
+          .slip-vitals-bar span { font-weight: 600; color: #065f46; }
+          .slip-columns-grid { display: grid; grid-template-columns: 1fr 1.6fr; gap: 16px; margin-bottom: 16px; }
+          .slip-left-col { border-right: 1px dashed #cbd5e1; padding-right: 12px; }
+          .slip-section-title { font-size: 12px; font-weight: 700; color: #0f766e; text-transform: uppercase; margin-bottom: 4px; }
+          .slip-section-box { margin-bottom: 12px; }
+          .slip-rx-title { font-size: 18px; font-weight: 800; font-family: serif; color: #0f766e; margin-bottom: 6px; }
+          .slip-med-table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
+          .slip-med-table th { background: #f1f5f9; text-align: left; padding: 5px 6px; font-size: 10px; font-weight: 700; color: #475569; border-bottom: 1px solid #cbd5e1; }
+          .slip-med-table td { padding: 6px 6px; border-bottom: 1px solid #f1f5f9; font-size: 11px; }
+          .slip-med-name { font-weight: 700; color: #0f172a; }
+          .slip-med-instruction { font-size: 10px; color: #64748b; }
+          .slip-footer { margin-top: 24px; padding-top: 12px; border-top: 1px solid #cbd5e1; display: flex; justify-content: space-between; align-items: flex-end; }
+          .slip-notes { font-size: 10px; color: #64748b; max-width: 60%; }
+          .slip-sign-block { text-align: center; min-width: 140px; }
+          .slip-sign-line { border-top: 1px solid #0f172a; margin-top: 36px; padding-top: 4px; font-size: 11px; font-weight: 700; }
+        </style>
+      </head>
+      <body>
+        ${slipElement.outerHTML}
+      </body>
+    </html>
+  `);
+  frameDoc.close();
+
+  setTimeout(() => {
+    try {
+      printFrame.contentWindow.focus();
+      printFrame.contentWindow.print();
+    } catch (e) {
+      window.print();
+    }
+  }, 250);
 }
 
 function downloadSlipAsPdf() {
+  syncFormToState();
   updateLiveTicketPreview();
-  const element = document.getElementById('printableOpdSlip');
-  if (!element) return;
+  const t = state.currentTicket;
+  const doc = state.doctorProfile;
 
-  const opt = {
-    margin: 10,
-    filename: `OPD_Ticket_${state.currentTicket.patient.name || 'Patient'}_Token_${state.currentTicket.tokenNumber}.pdf`,
-    image: { type: 'jpeg', quality: 0.98 },
-    html2canvas: { scale: 2, useCORS: true },
-    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-  };
-
-  if (window.html2pdf) {
-    window.html2pdf().set(opt).from(element).save();
-  } else {
-    // Fallback to standard print dialog
-    window.print();
+  // 1. If running inside Native Android App Bridge
+  if (window.AndroidBridge && typeof window.AndroidBridge.generateAndSharePdf === 'function') {
+    window.AndroidBridge.generateAndSharePdf(
+      JSON.stringify(t),
+      JSON.stringify(doc),
+      t.patient.phone || null
+    );
+    return;
   }
+
+  // 2. Try html2pdf if available
+  const slipEl = document.getElementById('printableOpdSlip');
+  if (window.html2pdf && slipEl) {
+    const opt = {
+      margin: 10,
+      filename: `OPD_Prescription_${t.patient.name || 'Patient'}_Token_${t.tokenNumber}.pdf`,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+    window.html2pdf().set(opt).from(slipEl).save();
+    return;
+  }
+
+  // 3. Robust Standalone Vector PDF Generator
+  try {
+    const pdfBlob = generateVectorPdfBlob(t, doc);
+    const fileName = `OPD_Prescription_${(t.patient.name || 'Patient').replace(/\s+/g, '_')}_Token_${t.tokenNumber}.pdf`;
+    
+    // Trigger direct browser download
+    const blobUrl = URL.createObjectURL(pdfBlob);
+    const link = document.createElement('a');
+    link.href = blobUrl;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 2000);
+  } catch (err) {
+    console.warn('PDF generation fallback to print:', err);
+    printOpdSlip();
+  }
+}
+
+/**
+ * Pure JavaScript Vector PDF 1.4 Builder (Zero Dependencies, 100% Offline)
+ */
+function generateVectorPdfBlob(ticket, doc) {
+  // A4 dimensions: 595.28 x 841.89 points
+  const streamLines = [];
+  
+  function esc(s) {
+    if (!s) return '';
+    return s.toString().replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)');
+  }
+
+  // Background Box helper
+  function drawRect(x, y, w, h, r, g, b, stroke = false, sr = 0, sg = 0, sb = 0) {
+    streamLines.push(`${r.toFixed(2)} ${g.toFixed(2)} ${b.toFixed(2)} rg`);
+    if (stroke) {
+      streamLines.push(`${sr.toFixed(2)} ${sg.toFixed(2)} ${sb.toFixed(2)} RG`);
+      streamLines.push(`1 w`);
+      streamLines.push(`${x} ${y} ${w} ${h} re B`);
+    } else {
+      streamLines.push(`${x} ${y} ${w} ${h} re f`);
+    }
+  }
+
+  function drawLine(x1, y1, x2, y2, r = 0.05, g = 0.58, b = 0.53, width = 1.5) {
+    streamLines.push(`${r.toFixed(2)} ${g.toFixed(2)} ${b.toFixed(2)} RG`);
+    streamLines.push(`${width} w`);
+    streamLines.push(`${x1} ${y1} m ${x2} ${y2} l S`);
+  }
+
+  function drawText(txt, x, y, size = 10, font = 'F1', r = 0.1, g = 0.15, b = 0.2) {
+    streamLines.push(`BT /${font} ${size} Tf ${r.toFixed(2)} ${g.toFixed(2)} ${b.toFixed(2)} rg ${x} ${y} Td (${esc(txt)}) Tj ET`);
+  }
+
+  let y = 800;
+
+  // Header - Clinic Name & Doctor Details
+  drawText(doc.clinicName.toUpperCase(), 35, y, 16, 'F2', 0.05, 0.46, 0.43);
+  drawText(`Address: ${doc.address}`, 340, y, 9, 'F1', 0.3, 0.35, 0.4);
+  y -= 16;
+  drawText(doc.name, 35, y, 13, 'F2', 0.06, 0.09, 0.16);
+  drawText(`Phone: ${doc.phone} | Email: ${doc.email}`, 340, y, 9, 'F1', 0.3, 0.35, 0.4);
+  y -= 14;
+  drawText(`${doc.degrees} • ${doc.specialty}`, 35, y, 10, 'F2', 0.25, 0.35, 0.4);
+  drawText(`Timings: ${doc.timings}`, 340, y, 9, 'F1', 0.3, 0.35, 0.4);
+  y -= 12;
+  drawText(`Reg. Number: ${doc.regNumber}`, 35, y, 9, 'F1', 0.4, 0.45, 0.5);
+
+  y -= 12;
+  drawLine(35, y, 560, y, 0.05, 0.58, 0.53, 2);
+  y -= 20;
+
+  // Patient Demographic Banner Box
+  drawRect(35, y - 32, 525, 42, 0.96, 0.97, 0.98, true, 0.88, 0.91, 0.94);
+  drawText(`TOKEN: #${ticket.tokenNumber} (${ticket.visitType})`, 45, y - 4, 11, 'F2', 0.05, 0.46, 0.43);
+  drawText(`DATE: ${ticket.date} ${ticket.time || ''}`, 45, y - 20, 9, 'F1', 0.3, 0.35, 0.4);
+
+  const patName = ticket.patient.name || 'Valued Patient';
+  const patAge = ticket.patient.age ? `${ticket.patient.age} Yrs` : '--';
+  const patGender = ticket.patient.gender || 'Male';
+  const patPhone = ticket.patient.phone || '--';
+
+  drawText(`PATIENT: ${patName}`, 210, y - 4, 11, 'F2', 0.06, 0.09, 0.16);
+  drawText(`AGE / GENDER: ${patAge} / ${patGender}`, 210, y - 20, 9, 'F1', 0.3, 0.35, 0.4);
+
+  drawText(`PHONE: ${patPhone}`, 410, y - 4, 10, 'F1', 0.1, 0.15, 0.2);
+  if (ticket.patient.uhid) {
+    drawText(`UHID: ${ticket.patient.uhid}`, 410, y - 20, 9, 'F1', 0.3, 0.35, 0.4);
+  }
+
+  y -= 46;
+
+  // Vitals Box
+  const v = ticket.vitals || {};
+  const vitalsTextArr = [];
+  if (v.bp) vitalsTextArr.push(`BP: ${v.bp} mmHg`);
+  if (v.pulse) vitalsTextArr.push(`Pulse: ${v.pulse} bpm`);
+  if (v.temp) vitalsTextArr.push(`Temp: ${v.temp} F`);
+  if (v.spo2) vitalsTextArr.push(`SpO2: ${v.spo2}%`);
+  if (v.weight) vitalsTextArr.push(`Wt: ${v.weight} kg`);
+  if (v.height) vitalsTextArr.push(`Ht: ${v.height} cm`);
+  if (v.bmi) vitalsTextArr.push(`BMI: ${v.bmi}`);
+  if (v.sugar) vitalsTextArr.push(`Sugar: ${v.sugar} mg/dL`);
+
+  if (vitalsTextArr.length > 0) {
+    drawRect(35, y - 10, 525, 20, 0.92, 0.98, 0.96, true, 0.06, 0.72, 0.5);
+    drawText(`VITALS:  ${vitalsTextArr.join('   |   ')}`, 45, y - 3, 9, 'F2', 0.02, 0.37, 0.27);
+    y -= 24;
+  }
+
+  y -= 10;
+  const leftColX = 35;
+  const rightColX = 250;
+  let leftY = y;
+  let rightY = y;
+
+  // Left Column: Complaints & Symptoms
+  if (ticket.symptoms && ticket.symptoms.length > 0) {
+    drawText('CHIEF COMPLAINTS', leftColX, leftY, 10, 'F2', 0.05, 0.46, 0.43);
+    leftY -= 14;
+    ticket.symptoms.forEach(s => {
+      drawText(`• ${s}`, leftColX + 5, leftY, 9, 'F1', 0.1, 0.15, 0.2);
+      leftY -= 13;
+    });
+    leftY -= 6;
+  }
+
+  // Left Column: Provisional Diagnosis
+  if (ticket.diagnosis) {
+    drawText('PROVISIONAL DIAGNOSIS', leftColX, leftY, 10, 'F2', 0.05, 0.46, 0.43);
+    leftY -= 14;
+    drawRect(leftColX, leftY - 8, 195, 18, 0.94, 0.96, 0.98);
+    drawText(ticket.diagnosis, leftColX + 5, leftY - 3, 9, 'F2', 0.06, 0.09, 0.16);
+    leftY -= 24;
+  }
+
+  // Left Column: Diagnostic Tests
+  if (ticket.tests && ticket.tests.length > 0) {
+    drawText('RECOMMENDED LAB TESTS', leftColX, leftY, 10, 'F2', 0.05, 0.46, 0.43);
+    leftY -= 14;
+    ticket.tests.forEach((tst, i) => {
+      drawText(`${i + 1}. ${tst.name}`, leftColX + 5, leftY, 9, 'F2', 0.1, 0.15, 0.2);
+      leftY -= 12;
+      if (tst.instructions) {
+        drawText(`   Note: ${tst.instructions}`, leftColX + 5, leftY, 8, 'F1', 0.4, 0.45, 0.5);
+        leftY -= 11;
+      }
+    });
+    leftY -= 6;
+  }
+
+  // Right Column: Prescriptions (Rx)
+  drawText('Rx  PRESCRIBED MEDICATIONS', rightColX, rightY, 13, 'F3', 0.05, 0.46, 0.43);
+  rightY -= 16;
+
+  // Rx Table Header
+  drawRect(rightColX, rightY - 4, 310, 16, 0.94, 0.96, 0.98, true, 0.8, 0.83, 0.88);
+  drawText('Medicine & Strength', rightColX + 5, rightY, 8, 'F2', 0.2, 0.25, 0.3);
+  drawText('Dosage', rightColX + 130, rightY, 8, 'F2', 0.2, 0.25, 0.3);
+  drawText('Timing', rightColX + 190, rightY, 8, 'F2', 0.2, 0.25, 0.3);
+  drawText('Days', rightColX + 265, rightY, 8, 'F2', 0.2, 0.25, 0.3);
+  rightY -= 16;
+
+  if (ticket.medicines && ticket.medicines.length > 0) {
+    ticket.medicines.forEach((med, i) => {
+      drawText(`${i + 1}. ${med.name}`, rightColX + 5, rightY, 9, 'F2', 0.06, 0.09, 0.16);
+      drawText(med.dose || '1-0-1', rightColX + 130, rightY, 9, 'F2', 0.1, 0.15, 0.2);
+      drawText(med.timing || 'After Food', rightColX + 190, rightY, 8, 'F1', 0.2, 0.25, 0.3);
+      drawText(med.duration || '5 Days', rightColX + 265, rightY, 8, 'F2', 0.1, 0.15, 0.2);
+      rightY -= 12;
+
+      if (med.instructions) {
+        drawText(`   * ${med.instructions}`, rightColX + 12, rightY, 8, 'F1', 0.4, 0.45, 0.5);
+        rightY -= 11;
+      }
+      rightY -= 3;
+    });
+  } else {
+    drawText('No medications prescribed.', rightColX + 10, rightY, 9, 'F1', 0.5, 0.5, 0.5);
+    rightY -= 16;
+  }
+
+  // Right Column: Diet & Advice
+  if (ticket.advice && ticket.advice.length > 0) {
+    rightY -= 6;
+    drawText('DIET & GENERAL ADVICE', rightColX, rightY, 10, 'F2', 0.05, 0.46, 0.43);
+    rightY -= 14;
+    ticket.advice.forEach(a => {
+      drawText(`• ${a}`, rightColX + 5, rightY, 8, 'F1', 0.1, 0.15, 0.2);
+      rightY -= 11;
+    });
+  }
+
+  // Right Column: Follow-up
+  if (ticket.followUp) {
+    rightY -= 8;
+    drawRect(rightColX, rightY - 6, 310, 18, 0.93, 0.96, 1.0, true, 0.74, 0.82, 0.98);
+    drawText(`NEXT FOLLOW-UP VISIT:  ${ticket.followUp}`, rightColX + 8, rightY - 1, 9, 'F2', 0.12, 0.25, 0.68);
+    rightY -= 20;
+  }
+
+  // Vertical Separator between columns
+  const lowestY = Math.min(leftY, rightY, 200);
+  drawLine(235, y + 4, 235, lowestY, 0.8, 0.83, 0.88, 1);
+
+  // Footer Section
+  const footY = 100;
+  drawLine(35, footY + 16, 560, footY + 16, 0.8, 0.83, 0.88, 1);
+  drawText(`* ${doc.footerNotes}`, 35, footY + 2, 8, 'F1', 0.4, 0.45, 0.5);
+  drawText(`Consultation Fee: ${doc.currency} ${doc.fee}`, 35, footY - 10, 9, 'F2', 0.2, 0.25, 0.3);
+  drawText(`Software by: ARSALAN YOUSUF DAR (dararsu01@gmail.com)`, 35, footY - 22, 7, 'F1', 0.5, 0.55, 0.6);
+
+  // Signature Block
+  drawText(doc.name, 430, footY + 2, 10, 'F2', 0.05, 0.46, 0.43);
+  drawLine(410, footY - 8, 550, footY - 8, 0.1, 0.15, 0.2, 1);
+  drawText(`Doctor's Signature / Stamp`, 425, footY - 18, 8, 'F1', 0.3, 0.35, 0.4);
+
+  // Assemble PDF Object Stream
+  const streamContent = streamLines.join('\n');
+  const streamLen = streamContent.length;
+
+  const pdfObjects = [
+    `%PDF-1.4\n%âãÏÓ`,
+    // Obj 1: Catalog
+    `1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj`,
+    // Obj 2: Pages
+    `2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj`,
+    // Obj 3: Page
+    `3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 4 0 R /F2 5 0 R /F3 6 0 R >> >> /Contents 7 0 R >>\nendobj`,
+    // Obj 4: Font Helvetica
+    `4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj`,
+    // Obj 5: Font Helvetica-Bold
+    `5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>\nendobj`,
+    // Obj 6: Font Times-Bold
+    `6 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Times-Bold >>\nendobj`,
+    // Obj 7: Content Stream
+    `7 0 obj\n<< /Length ${streamLen} >>\nstream\n${streamContent}\nendstream\nendobj`
+  ];
+
+  // Calculate offsets for xref table
+  let currentOffset = 0;
+  const offsets = [];
+  let pdfBody = '';
+
+  for (let i = 0; i < pdfObjects.length; i++) {
+    offsets.push(currentOffset);
+    const chunk = pdfObjects[i] + '\n';
+    pdfBody += chunk;
+    currentOffset += chunk.length;
+  }
+
+  const xrefOffset = currentOffset;
+  let xref = `xref\n0 8\n0000000000 65535 f \n`;
+  for (let i = 1; i < offsets.length; i++) {
+    const offStr = offsets[i].toString().padStart(10, '0');
+    xref += `${offStr} 00000 n \n`;
+  }
+
+  const trailer = `trailer\n<< /Size 8 /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`;
+  const completePdf = pdfBody + xref + trailer;
+
+  return new Blob([completePdf], { type: 'application/pdf' });
 }
 
 // Save & Issue Ticket

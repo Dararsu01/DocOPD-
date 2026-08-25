@@ -1,9 +1,12 @@
 package com.docopd.app
 
 import android.annotation.SuppressLint
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.print.PrintAttributes
+import android.print.PrintManager
 import android.webkit.JavascriptInterface
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
@@ -40,13 +43,13 @@ class MainActivity : AppCompatActivity() {
         webView.webViewClient = object : WebViewClient() {
             override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
                 val url = request?.url.toString()
-                if (url.startsWith("https://wa.me") || url.startsWith("whatsapp://") || url.startsWith("https://api.whatsapp.com")) {
+                if (url.startsWith("https://wa.me") || url.startsWith("whatsapp://") || url.startsWith("https://api.whatsapp.com") || url.startsWith("mailto:")) {
                     try {
                         val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
                         startActivity(intent)
                         return true
                     } catch (e: Exception) {
-                        Toast.makeText(this@MainActivity, "WhatsApp not installed or error opening", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(this@MainActivity, "Could not open link: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
                     }
                 }
                 return false
@@ -90,6 +93,19 @@ class MainActivity : AppCompatActivity() {
                     WhatsAppHelper.sharePdfFile(activity, pdfFile, patientPhone)
                 } else {
                     Toast.makeText(activity, "Failed to generate PDF", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+
+        @JavascriptInterface
+        fun printDocument() {
+            activity.runOnUiThread {
+                try {
+                    val printManager = activity.getSystemService(Context.PRINT_SERVICE) as? PrintManager
+                    val printAdapter = webView.createPrintDocumentAdapter("DocOPD_Prescription")
+                    printManager?.print("DocOPD_Prescription", printAdapter, PrintAttributes.Builder().build())
+                } catch (e: Exception) {
+                    Toast.makeText(activity, "Printing not supported: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
                 }
             }
         }

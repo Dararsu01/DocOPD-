@@ -1,105 +1,73 @@
 # 🩺 DocOPD - Doctor OPD Ticket & Digital Prescription Android App
 
 [![Build Android APK](https://github.com/Doctor/DocOPD/actions/workflows/build-apk.yml/badge.svg)](https://github.com/Doctor/DocOPD/actions/workflows/build-apk.yml)
-[![Version](https://img.shields.io/badge/version-1.0.0-teal.svg)](https://github.com/Doctor/DocOPD/releases)
+[![Version](https://img.shields.io/badge/version-1.1.0-teal.svg)](https://github.com/Doctor/DocOPD/releases)
+[![Author](https://img.shields.io/badge/Developer-ARSALAN%20YOUSUF%20DAR-0284C7.svg)](#-project-creator--developer-contact)
 [![Platform](https://img.shields.io/badge/platform-Android%20%7C%20PWA-0284C7.svg)](#)
 
-A complete Android application built for doctors and medical clinics to configure custom clinic profiles, create comprehensive digital OPD tickets & prescriptions, generate printable PDF slips, and send them directly to patients via WhatsApp.
+A complete Android application built for doctors and medical clinics to configure custom clinic profiles, create comprehensive digital OPD tickets & prescriptions, generate high-resolution vector PDF slips, print A4 prescriptions, and send them directly to patients via WhatsApp.
 
 ---
 
-## 🌟 Key Features
+## 👨‍💻 Project Creator & Developer Contact
 
-1. **👨‍⚕️ Doctor Profile & Clinic Branding**:
-   - Custom Doctor Name, Qualifications/Degrees, Medical Council Registration Number, Specialty.
-   - Clinic/Hospital Name, Address, Contact/WhatsApp Phone, Email, Timings, Consultation Fee, and Disclaimer note.
-2. **🎫 Complete Clinical Sections**:
-   - Patient Info (Name, Age, Gender, Phone, UHID, OPD Token No, Date & Time).
-   - Vitals & Health Metrics (BP, Pulse, Temperature, SpO2, Weight, Height, **Auto-calculated BMI**, Blood Sugar).
-   - Chief Complaints & Symptoms with 1-tap quick chips + custom inputs.
-   - Provisional Diagnosis & ICD/Common conditions picker.
-   - Diagnostic & Lab Tests library (CBC, Sugar, HbA1c, Lipid, LFT, KFT, Thyroid, X-Ray, ECG, USG, etc.) with custom instructions (e.g. *12h Fasting*).
-   - Rx Medications with auto-suggestions, dosage/frequency (1-0-1, SOS), timing (before/after food), duration, and notes.
-   - Diet & General Lifestyle Advice.
-   - Next Follow-Up Visit schedule.
-3. **📱 Direct WhatsApp Integration**:
-   - 1-tap WhatsApp message dispatcher with clean formatting, emojis, token number, prescribed tests, medications, diet advice, and clinic contact.
-4. **📄 Digital PDF & Slip Generator**:
-   - Professional medical slip layout ready to download as PDF or print.
-5. **⚡ Clinical Kits & History**:
-   - Pre-configured 1-click clinical kits (*Viral Fever*, *Gastroenteritis*, *Hypertension*, *Diabetes*).
-   - Searchable OPD records queue to re-send to WhatsApp, duplicate, or reprint.
-6. **🚀 Automated GitHub Actions CI/CD**:
-   - Automatically builds installable Android APKs on every commit/push and publishes Releases!
+- **Lead Developer**: **ARSALAN YOUSUF DAR**
+- **Email**: [dararsu01@gmail.com](mailto:dararsu01@gmail.com)
+- **Academic Project**: B.Tech Major Capstone Project • Digital Healthcare & EMR System
 
 ---
 
-## 🚀 How to Upload to GitHub & Get Automated APK Builds
+## 🌟 What's New in Version 1.1.0
 
-### Step 1: Create a new repository on GitHub
-1. Go to [github.com/new](https://github.com/new).
-2. Name your repository (e.g., `DocOPD`).
-3. Set visibility to **Public** (recommended so you can download APK releases easily) or **Private**.
-4. Leave "Initialize this repository with a README" **unchecked** (we already have all files ready).
-5. Click **Create repository**.
+- 🖨️ **Fixed PDF Download & Printing**: Built a pure, offline-capable vector PDF generation engine (`application/pdf`) and an isolated print iframe that prints crisp, professional A4 prescription slips with zero external dependencies.
+- 🩺 **Doctor Symbol App Icon**: High-resolution medical Caduceus, Stethoscope & Cross badges in SVG and PNG formats for Android and Web.
+- 👨‍💻 **Creator Section**: Dedicated Developer card in the Settings tab with 1-click email and contact links.
+- 📱 **Android Print & Share Bridge**: Native integration with Android `PrintManager` and `PdfDocument` for instant PDF sharing on mobile.
 
-### Step 2: Push your code from your computer
-Open your computer Terminal and run these commands:
+---
+
+## 🚀 How to Send This Update to All Users via GitHub
+
+Since you have already uploaded your project to GitHub, follow these simple steps to push the new version (`v1.1.0`) so that GitHub automatically builds the new `.apk` and your users receive the update:
+
+### 1. Commit and Push the Updates to GitHub
+Run these commands in your Mac Terminal:
 
 ```bash
-cd /Users/apple/.gemini/antigravity/scratch/DocOPDApp
+cd ~/.gemini/antigravity/scratch/DocOPDApp
 
-# 1. Initialize git and commit files
-git init
+# Stage and commit all changes
 git add .
-git commit -m "Initial commit: DocOPD Android app with WhatsApp and PDF support"
+git commit -m "feat: v1.1.0 release - fixed PDF & print engine, added doctor icon and creator contact"
 
-# 2. Rename branch to main
-git branch -M main
-
-# 3. Connect to your GitHub repository (replace with your actual URL)
-git remote add origin https://github.com/YOUR_USERNAME/DocOPD.git
-
-# 4. Push code to GitHub
-git push -u origin main
+# Push to your main branch
+git push origin main
 ```
 
----
+### 2. Create the Version Tag (Triggers Automatic APK Release)
+```bash
+# Create the v1.1.0 release tag and push it
+git tag v1.1.0
+git push origin v1.1.0
+```
 
-## 📥 How to Download & Install the APK on Your Android Phone
-
-### Method A: Download the APK built automatically by GitHub Actions
-1. Go to your repository on GitHub: `https://github.com/YOUR_USERNAME/DocOPD`.
-2. Click on the **"Actions"** tab at the top.
-3. Click the latest workflow run (e.g., *"Initial commit..."*).
-4. Under **Artifacts**, click **`DocOPD-Debug-APK`** to download the ready-to-install `.zip` / `.apk` file.
-5. Transfer or open the `.apk` file on your Android phone and tap **Install**!
-
-### Method B: Create a New Release & Share Update Links with Users
-Whenever you want to release an update for doctors or staff:
-1. Tag your code and push the tag:
-   ```bash
-   git tag v1.0.1
-   git push origin v1.0.1
-   ```
-2. GitHub Actions will automatically compile the APK and attach it to a **GitHub Release** at:
+### 3. How Users Receive the Update
+1. **Automated GitHub Actions Build**: GitHub will automatically compile the new `.apk` and attach it to your **GitHub Releases** page:  
    `https://github.com/YOUR_USERNAME/DocOPD/releases`
-3. Users and doctors can download the updated `.apk` with 1 tap directly from the link!
+2. **In-App Auto-Update**: Existing doctors and users can open their app, go to **"Dr Setup"** > **"App Version & GitHub Updates"**, and tap **"🔍 Check for Updates"**. The app will detect `v1.1.0` and show a 1-tap **"📥 Download Latest APK"** button!
 
 ---
 
-## 🛠️ Local Development & Android Studio
+## 🛠️ Features Overview
 
-- **Run in Browser / Local Server**:
-  ```bash
-  python3 /Users/apple/.gemini/antigravity/scratch/DocOPDApp/server.py
-  ```
-  Open `http://localhost:8085` in your browser.
-
-- **Open in Android Studio**:
-  Open the `/Users/apple/.gemini/antigravity/scratch/DocOPDApp/android` folder in Android Studio and click **Run (▶)**.
+1. **👨‍⚕️ Doctor Profile Customization**: Full Name, Degrees, Registration Number, Clinic Name, Address, WhatsApp Contact, Consultation Timings & Fee.
+2. **🎫 Complete Clinical Sections**: Patient Info, Vitals with Auto-Calculated BMI, Chief Complaints, Provisional Diagnosis, Recommended Lab Tests with fasting instructions, Rx Medicines with dosage/timing, Diet Advice, and Follow-up.
+3. **📱 WhatsApp 1-Tap Sharing**: Direct WhatsApp message dispatcher with clean medical table formatting.
+4. **📄 Pure Vector PDF & Clean A4 Printing**: Instant download and isolated print dialog.
+5. **⚡ 1-Click Clinical Kits**: Templates for *Viral Fever*, *Gastroenteritis*, *Hypertension*, and *Diabetes*.
 
 ---
 
-## 📄 License
-This project is open-source and free to customize for clinics, doctors, and healthcare institutions.
+## 📄 License & Attribution
+Designed and Developed by **ARSALAN YOUSUF DAR** ([dararsu01@gmail.com](mailto:dararsu01@gmail.com)).
+Free to use and customize for clinics, doctors, and academic projects.
